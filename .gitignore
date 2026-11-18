@@ -17,3 +17,6 @@
 # IDE
 .idea/
 .vscode/
+
+# Frontend submodule/nested clone
+/ifs24024-pabwe2026-sk-p9-fe-reactjs/
