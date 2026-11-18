@@ -135,6 +135,10 @@ pipeline {
                     echo "=== Binary Created ==="
                     ls -lh server
                     file server || true
+
+                    echo "=== Freeing Disk Space for Trivy Security Scan ==="
+                    go clean -cache
+                    rm -f server
                 '''
             }
         }
@@ -160,7 +164,10 @@ pipeline {
                 sh '''
                     set -e
 
+                    echo "=== Cleaning Stale Trivy Cache and Checking Disk Space ==="
+                    rm -rf .trivy-cache /tmp/trivy* /tmp/.cache || true
                     mkdir -p .trivy-cache || true
+                    df -h . /tmp || true
 
                     echo "======================================"
                     echo "        TRIVY SECURITY SCAN"
