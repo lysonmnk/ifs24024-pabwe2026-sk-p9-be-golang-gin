@@ -189,6 +189,9 @@ pipeline {
 
                     echo "=== Trivy Result ==="
                     ls -lh trivy-results.sarif
+
+                    echo "=== Cleaning Trivy Cache to Free Disk Space for Next Stage ==="
+                    rm -rf .trivy-cache /tmp/trivy* /tmp/.cache || true
                 '''
             }
 
@@ -228,6 +231,8 @@ pipeline {
                     echo "======================================"
                     echo "       CREATING APPLICATION PACKAGE"
                     echo "======================================"
+
+                    rm -rf .trivy-cache /tmp/* 2>/dev/null || true
 
                     apk add --no-cache git zip unzip
 
