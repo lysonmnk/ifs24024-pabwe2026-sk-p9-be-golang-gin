@@ -162,9 +162,30 @@ func TestAuthService(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, "email atau password salah", err.Error())
 
-		// Non-existent email
-		loginReq.Email = "nonexistent@contoh.com"
-		_, err = svc.Login(loginReq)
+		// Login with username
+		loginUserReq := &LoginRequest{
+			Username: "author1",
+			Password: "password123",
+		}
+		resUser, err := svc.Login(loginUserReq)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, resUser.Token)
+
+		// Login with username in email field (no @)
+		loginEmailAsUserReq := &LoginRequest{
+			Email:    "author1",
+			Password: "password123",
+		}
+		resEmailAsUser, err := svc.Login(loginEmailAsUserReq)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, resEmailAsUser.Token)
+
+		// Login with non-existent username
+		loginNonExistentUserReq := &LoginRequest{
+			Username: "nonexistent_user",
+			Password: "password123",
+		}
+		_, err = svc.Login(loginNonExistentUserReq)
 		assert.Error(t, err)
 		assert.Equal(t, "email atau password salah", err.Error())
 	})
@@ -325,6 +346,29 @@ func TestAuthHandler(t *testing.T) {
 		cWrong.Request.Header.Set("Content-Type", "application/json")
 		handler.Login(cWrong)
 		assert.Equal(t, http.StatusUnauthorized, wWrong.Code)
+
+		// Missing both email and username -> 400
+		bodyEmpty, _ := json.Marshal(LoginRequest{
+			Password: "password123",
+		})
+		wEmpty := httptest.NewRecorder()
+		cEmpty, _ := gin.CreateTestContext(wEmpty)
+		cEmpty.Request, _ = http.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBuffer(bodyEmpty))
+		cEmpty.Request.Header.Set("Content-Type", "application/json")
+		handler.Login(cEmpty)
+		assert.Equal(t, http.StatusBadRequest, wEmpty.Code)
+
+		// Valid login with username -> 200
+		bodyUser, _ := json.Marshal(LoginRequest{
+			Username: "handleruser",
+			Password: "password123",
+		})
+		wUser := httptest.NewRecorder()
+		cUser, _ := gin.CreateTestContext(wUser)
+		cUser.Request, _ = http.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBuffer(bodyUser))
+		cUser.Request.Header.Set("Content-Type", "application/json")
+		handler.Login(cUser)
+		assert.Equal(t, http.StatusOK, wUser.Code)
 	})
 
 	t.Run("GetProfile handler", func(t *testing.T) {
