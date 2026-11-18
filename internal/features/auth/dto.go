@@ -10,7 +10,8 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
 	Password string `json:"password" binding:"required"`
 }
 

@@ -74,7 +74,18 @@ func (s *authService) Register(req *RegisterRequest) (*UserProfileResponse, erro
 }
 
 func (s *authService) Login(req *LoginRequest) (*AuthResponse, error) {
-	user, err := s.repo.FindByEmail(req.Email)
+	var user *database.User
+	var err error
+
+	if req.Email != "" {
+		user, err = s.repo.FindByEmail(req.Email)
+	}
+	if user == nil && req.Username != "" {
+		user, err = s.repo.FindByUsername(req.Username)
+	}
+	if user == nil && req.Email != "" && !strings.Contains(req.Email, "@") {
+		user, err = s.repo.FindByUsername(req.Email)
+	}
 	if err != nil || user == nil {
 		return nil, errors.New("email atau password salah")
 	}

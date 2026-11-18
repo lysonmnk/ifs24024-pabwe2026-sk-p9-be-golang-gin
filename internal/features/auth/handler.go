@@ -57,6 +57,11 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
+	if req.Email == "" && req.Username == "" {
+		response.Error(c, http.StatusBadRequest, "Email dan password wajib diisi", nil)
+		return
+	}
+
 	res, err := h.service.Login(&req)
 	if err != nil {
 		response.Error(c, http.StatusUnauthorized, err.Error(), nil)
