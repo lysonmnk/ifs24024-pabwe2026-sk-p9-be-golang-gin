@@ -20,3 +20,7 @@
 
 # Frontend submodule/nested clone
 /ifs24024-pabwe2026-sk-p9-fe-reactjs/
+
+# Database files
+pabwe_p9_blog*
+*.db
