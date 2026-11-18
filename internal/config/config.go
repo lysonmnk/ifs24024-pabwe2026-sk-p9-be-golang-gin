@@ -40,13 +40,18 @@ func LoadConfig() (*Config, error) {
 		port = getEnv("PORT", "8081")
 	}
 
+	defaultDBConn := "pgsql"
+	if os.Getenv("DB_CONNECTION") == "" && (os.Getenv("APP_URL") != "" || os.Getenv("PORT") != "") {
+		defaultDBConn = "sqlite"
+	}
+
 	cfg := &Config{
 		AppEnv:               getEnv("APP_ENV", "development"),
 		AppPort:              port,
 		AppKey:               getEnv("APP_KEY", "default-secret-key-32-characters-minimum"),
 		AdminUsername:        getEnv("ADMIN_USERNAME", "admin"),
 		AdminPassword:        getEnv("ADMIN_PASSWORD", "adminpassword123"),
-		DBConnection:         getEnv("DB_CONNECTION", "pgsql"),
+		DBConnection:         getEnv("DB_CONNECTION", defaultDBConn),
 		DBHost:               getEnv("DB_HOST", "127.0.0.1"),
 		DBPort:               getEnv("DB_PORT", "5432"),
 		DBDatabase:           getEnv("DB_DATABASE", "pabwe_p9_blog"),

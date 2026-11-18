@@ -96,4 +96,16 @@ func TestConfig(t *testing.T) {
 		val := getEnv("TEST_EMPTY_VAR", "fallback_value")
 		assert.Equal(t, "fallback_value", val)
 	})
+
+	t.Run("LoadConfig on deployment environment with PORT defaults to sqlite", func(t *testing.T) {
+		os.Unsetenv("DB_CONNECTION")
+		os.Unsetenv("APP_PORT")
+		os.Setenv("PORT", "7020")
+		defer os.Unsetenv("PORT")
+
+		cfg, err := LoadConfig()
+		assert.NoError(t, err)
+		assert.Equal(t, "7020", cfg.AppPort)
+		assert.Equal(t, "sqlite", cfg.DBConnection)
+	})
 }
