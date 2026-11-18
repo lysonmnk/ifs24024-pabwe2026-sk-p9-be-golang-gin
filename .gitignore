@@ -1,0 +1,19 @@
+# Binaries with leading slash so internal/server is not ignored
+/server
+/server.exe
+/main
+/main.exe
+/app
+/app.exe
+
+# Environment files
+.env
+
+# Test coverage & binaries
+*.out
+*.test
+*.prof
+
+# IDE
+.idea/
+.vscode/
