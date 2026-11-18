@@ -36,6 +36,7 @@ pipeline {
                     image 'golang:1.27-alpine'
                     reuseNode true
                     args '''
+                        -u root
                         -e HOME=/tmp
                         -e GOCACHE=/go-cache/build
                         -e GOMODCACHE=/go-cache/mod
@@ -47,6 +48,9 @@ pipeline {
             steps {
                 sh '''
                     set -e
+
+                    mkdir -p /go-cache/build /go-cache/mod
+                    chmod -R 777 /go-cache || true
 
                     echo "=== Go Runtime ==="
                     go version
@@ -76,6 +80,7 @@ pipeline {
                     image 'golang:1.27-alpine'
                     reuseNode true
                     args '''
+                        -u root
                         -e HOME=/tmp
                         -e GOCACHE=/go-cache/build
                         -e GOMODCACHE=/go-cache/mod
@@ -117,6 +122,7 @@ pipeline {
                     image 'golang:1.27-alpine'
                     reuseNode true
                     args '''
+                        -u root
                         -e HOME=/tmp
                         -e GOCACHE=/go-cache/build
                         -e GOMODCACHE=/go-cache/mod
@@ -138,7 +144,8 @@ pipeline {
 
                     echo "=== Freeing Disk Space for Trivy Security Scan ==="
                     go clean -cache -modcache || true
-                    rm -rf /go-cache/* /tmp/* server || true
+                    rm -rf /go-cache/build/* /go-cache/mod/cache/* /tmp/* server || true
+                    chmod -R 777 /go-cache || true
                 '''
             }
         }
