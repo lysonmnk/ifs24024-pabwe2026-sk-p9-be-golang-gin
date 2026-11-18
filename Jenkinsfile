@@ -36,7 +36,6 @@ pipeline {
                     image 'golang:1.27-alpine'
                     reuseNode true
                     args '''
-                        -u root
                         -e HOME=/tmp
                         -e GOCACHE=/go-cache/build
                         -e GOMODCACHE=/go-cache/mod
@@ -48,9 +47,6 @@ pipeline {
             steps {
                 sh '''
                     set -e
-
-                    mkdir -p /go-cache/build /go-cache/mod
-                    chmod -R 777 /go-cache || true
 
                     echo "=== Go Runtime ==="
                     go version
@@ -80,7 +76,6 @@ pipeline {
                     image 'golang:1.27-alpine'
                     reuseNode true
                     args '''
-                        -u root
                         -e HOME=/tmp
                         -e GOCACHE=/go-cache/build
                         -e GOMODCACHE=/go-cache/mod
@@ -122,7 +117,6 @@ pipeline {
                     image 'golang:1.27-alpine'
                     reuseNode true
                     args '''
-                        -u root
                         -e HOME=/tmp
                         -e GOCACHE=/go-cache/build
                         -e GOMODCACHE=/go-cache/mod
@@ -141,11 +135,6 @@ pipeline {
                     echo "=== Binary Created ==="
                     ls -lh server
                     file server || true
-
-                    echo "=== Freeing Disk Space for Trivy Security Scan ==="
-                    go clean -cache -modcache || true
-                    rm -rf /go-cache/build/* /go-cache/mod/cache/* /tmp/* server || true
-                    chmod -R 777 /go-cache || true
                 '''
             }
         }
@@ -171,10 +160,7 @@ pipeline {
                 sh '''
                     set -e
 
-                    echo "=== Cleaning Stale Trivy Cache and Checking Disk Space ==="
-                    rm -rf .trivy-cache /tmp/trivy* /tmp/.cache || true
                     mkdir -p .trivy-cache || true
-                    df -h . /tmp || true
 
                     echo "======================================"
                     echo "        TRIVY SECURITY SCAN"
@@ -185,33 +171,17 @@ pipeline {
 
                     echo "=== Trivy Scan ==="
 
-                    if ! trivy fs \
+                    trivy fs \
                         --cache-dir .trivy-cache \
                         --scanners vuln \
                         --severity HIGH,CRITICAL \
                         --format sarif \
                         --output trivy-results.sarif \
-                        --skip-java-db-update \
-                        --parallel 1 \
                         --exit-code 1 \
-                        .; then
-                        if [ ! -f trivy-results.sarif ] || [ ! -s trivy-results.sarif ]; then
-                            echo "WARNING: Trivy DB download failed due to host disk exhaustion (~1.6GB free on shared server)."
-                            echo "Generating empty valid SARIF report so host infrastructure issue does not block deployment."
-                            cat << 'EOF' > trivy-results.sarif
-{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"Trivy","informationUri":"https://github.com/aquasecurity/trivy","rules":[]}},"results":[]}]}
-EOF
-                        else
-                            echo "ERROR: Trivy detected HIGH/CRITICAL vulnerabilities."
-                            exit 1
-                        fi
-                    fi
+                        .
 
                     echo "=== Trivy Result ==="
                     ls -lh trivy-results.sarif
-
-                    echo "=== Cleaning Trivy Cache to Free Disk Space for Next Stage ==="
-                    rm -rf .trivy-cache /tmp/trivy* /tmp/.cache || true
                 '''
             }
 
@@ -251,8 +221,6 @@ EOF
                     echo "======================================"
                     echo "       CREATING APPLICATION PACKAGE"
                     echo "======================================"
-
-                    rm -rf .trivy-cache /tmp/* 2>/dev/null || true
 
                     apk add --no-cache git zip unzip
 
