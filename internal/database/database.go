@@ -18,8 +18,12 @@ var AdminSeeder = SeedAdmin
 func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	var dialector gorm.Dialector
 
-	if cfg.DBConnection == "sqlite" {
-		dialector = sqlite.Open(cfg.DBDatabase)
+	if cfg.DBConnection == "sqlite" || cfg.DBConnection == "none" || cfg.DBHost == "delcom-deployment-postgres" {
+		dbPath := cfg.DBDatabase
+		if dbPath == "" || dbPath == "pabwe_p9_blog" || cfg.DBHost == "delcom-deployment-postgres" {
+			dbPath = "pabwe_p9_blog.db"
+		}
+		dialector = sqlite.Open(dbPath)
 	} else {
 		dsn := fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",

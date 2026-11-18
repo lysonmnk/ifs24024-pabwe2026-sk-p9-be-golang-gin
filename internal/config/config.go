@@ -35,9 +35,14 @@ func getEnv(key, fallback string) string {
 func LoadConfig() (*Config, error) {
 	_ = godotenv.Load()
 
+	port := getEnv("APP_PORT", "")
+	if port == "" {
+		port = getEnv("PORT", "8081")
+	}
+
 	cfg := &Config{
 		AppEnv:               getEnv("APP_ENV", "development"),
-		AppPort:              getEnv("APP_PORT", "8081"),
+		AppPort:              port,
 		AppKey:               getEnv("APP_KEY", "default-secret-key-32-characters-minimum"),
 		AdminUsername:        getEnv("ADMIN_USERNAME", "admin"),
 		AdminPassword:        getEnv("ADMIN_PASSWORD", "adminpassword123"),

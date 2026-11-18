@@ -113,4 +113,17 @@ func TestDatabase(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, db)
 	})
+
+	t.Run("InitDB with delcom-deployment-postgres host falls back to sqlite", func(t *testing.T) {
+		dwsCfg := &config.Config{
+			DBConnection:  "pgsql",
+			DBHost:        "delcom-deployment-postgres",
+			DBDatabase:    ":memory:",
+			AdminUsername: "admin",
+			AdminPassword: "adminpassword123",
+		}
+		db, err := InitDB(dwsCfg)
+		assert.NoError(t, err)
+		assert.NotNil(t, db)
+	})
 }
