@@ -141,12 +141,13 @@ func (r *postRepository) SlugExists(slug string, excludeID uint) (bool, error) {
 func (r *postRepository) GetAllUsersWithPostCount() ([]AdminUserResponse, error) {
 	type userWithCount struct {
 		database.User
-		PostCount int64 `gorm:"column:post_count"`
+		PostCount      int64 `gorm:"column:post_count"`
+		PublishedCount int64 `gorm:"column:published_count"`
 	}
 
 	var results []userWithCount
 	err := r.db.Table("users").
-		Select("users.*, COUNT(posts.id) as post_count").
+		Select("users.*, COUNT(posts.id) as post_count, COUNT(CASE WHEN posts.is_published = true THEN 1 END) as published_count").
 		Joins("LEFT JOIN posts ON posts.user_id = users.id AND posts.deleted_at IS NULL").
 		Where("users.deleted_at IS NULL").
 		Group("users.id").
@@ -160,13 +161,16 @@ func (r *postRepository) GetAllUsersWithPostCount() ([]AdminUserResponse, error)
 	users := make([]AdminUserResponse, 0)
 	for _, res := range results {
 		users = append(users, AdminUserResponse{
-			ID:         res.ID,
-			Name:       res.Name,
-			Username:   res.Username,
-			Email:      res.Email,
-			Role:       res.Role,
-			TotalPosts: res.PostCount,
-			CreatedAt:  res.CreatedAt,
+			ID:             res.ID,
+			Name:           res.Name,
+			Username:       res.Username,
+			Email:          res.Email,
+			Role:           res.Role,
+			TotalPosts:     res.PostCount,
+			TotalArticles:  res.PostCount,
+			TotalPublished: res.PublishedCount,
+			TotalDrafts:    res.PostCount - res.PublishedCount,
+			CreatedAt:      res.CreatedAt,
 		})
 	}
 	return users, nil

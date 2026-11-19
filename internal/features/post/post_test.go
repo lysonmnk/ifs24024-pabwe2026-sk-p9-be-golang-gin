@@ -728,6 +728,15 @@ func TestPostHandler(t *testing.T) {
 		handler.AdminGetAllUsers(cUsers)
 		assert.Equal(t, http.StatusOK, wUsers.Code)
 
+		var usersResp struct {
+			Data []AdminUserResponse `json:"data"`
+		}
+		_ = json.Unmarshal(wUsers.Body.Bytes(), &usersResp)
+		if len(usersResp.Data) > 0 {
+			assert.GreaterOrEqual(t, usersResp.Data[0].TotalArticles, int64(0))
+			assert.LessOrEqual(t, usersResp.Data[0].TotalPublished, usersResp.Data[0].TotalArticles)
+		}
+
 		wArchive := httptest.NewRecorder()
 		cArchive, _ := gin.CreateTestContext(wArchive)
 		handler.AdminGetAllPosts(cArchive)
