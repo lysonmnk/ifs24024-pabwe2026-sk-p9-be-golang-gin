@@ -8,6 +8,11 @@ import (
 	"app/internal/database"
 )
 
+var (
+	ErrPostNotFound  = errors.New("artikel tidak ditemukan")
+	ErrPostForbidden = errors.New("anda tidak memiliki akses ke artikel ini")
+)
+
 type Service interface {
 	GetCategories() ([]string, error)
 	GetPublicPosts(keyword, category string) ([]PostResponse, error)
@@ -84,12 +89,20 @@ func (s *postService) GetPublicPosts(keyword, category string) ([]PostResponse, 
 	responses := make([]PostResponse, 0)
 	for _, p := range posts {
 		var author *AuthorSummary
+		authorName := ""
 		if p.User != nil {
+			authorName = p.User.Name
+			if authorName == "" {
+				authorName = p.User.Username
+			}
 			author = &AuthorSummary{
 				ID:       p.User.ID,
 				Name:     p.User.Name,
 				Username: p.User.Username,
 			}
+		}
+		if authorName == "" {
+			authorName = "Penulis"
 		}
 
 		responses = append(responses, PostResponse{
@@ -99,6 +112,7 @@ func (s *postService) GetPublicPosts(keyword, category string) ([]PostResponse, 
 			Category:    p.Category,
 			Excerpt:     p.Excerpt,
 			ReadingTime: p.ReadingTime,
+			AuthorName:  authorName,
 			IsPublished: p.IsPublished,
 			PublishedAt: p.PublishedAt,
 			CreatedAt:   p.CreatedAt,
@@ -113,16 +127,24 @@ func (s *postService) GetPublicPosts(keyword, category string) ([]PostResponse, 
 func (s *postService) GetPublicPostBySlug(slug string) (*PostDetailResponse, error) {
 	p, err := s.repo.GetPublicPostBySlug(slug)
 	if err != nil || p == nil {
-		return nil, errors.New("artikel tidak ditemukan")
+		return nil, ErrPostNotFound
 	}
 
 	var author *AuthorSummary
+	authorName := ""
 	if p.User != nil {
+		authorName = p.User.Name
+		if authorName == "" {
+			authorName = p.User.Username
+		}
 		author = &AuthorSummary{
 			ID:       p.User.ID,
 			Name:     p.User.Name,
 			Username: p.User.Username,
 		}
+	}
+	if authorName == "" {
+		authorName = "Penulis"
 	}
 
 	return &PostDetailResponse{
@@ -133,6 +155,7 @@ func (s *postService) GetPublicPostBySlug(slug string) (*PostDetailResponse, err
 		Excerpt:     p.Excerpt,
 		Content:     p.Content,
 		ReadingTime: p.ReadingTime,
+		AuthorName:  authorName,
 		IsPublished: p.IsPublished,
 		PublishedAt: p.PublishedAt,
 		CreatedAt:   p.CreatedAt,
@@ -231,11 +254,11 @@ func (s *postService) CreatePost(userID uint, req *CreatePostRequest) (*PostDeta
 func (s *postService) GetAuthorPostByID(id uint, userID uint) (*PostDetailResponse, error) {
 	p, err := s.repo.GetPostByID(id)
 	if err != nil || p == nil {
-		return nil, errors.New("artikel tidak ditemukan")
+		return nil, ErrPostNotFound
 	}
 
 	if p.UserID != userID {
-		return nil, errors.New("anda tidak memiliki akses ke artikel ini")
+		return nil, ErrPostForbidden
 	}
 
 	return &PostDetailResponse{
@@ -257,39 +280,32 @@ func (s *postService) GetAuthorPostByID(id uint, userID uint) (*PostDetailRespon
 func (s *postService) UpdateAuthorPost(id uint, userID uint, req *UpdatePostRequest) (*PostDetailResponse, error) {
 	p, err := s.repo.GetPostByID(id)
 	if err != nil || p == nil {
-		return nil, errors.New("artikel tidak ditemukan")
+		return nil, ErrPostNotFound
 	}
 
 	if p.UserID != userID {
-		return nil, errors.New("anda tidak memiliki akses ke artikel ini")
+		return nil, ErrPostForbidden
 	}
 
-	if p.Title != req.Title {
+	if req.Title != "" && p.Title != req.Title {
 		slug, err := s.ensureUniqueSlug(req.Title, p.ID)
 		if err != nil {
 			return nil, err
 		}
 		p.Slug = slug
+		p.Title = req.Title
 	}
 
-	category := req.Category
-	if category == "" {
-		category = "Umum"
+	if req.Category != "" {
+		p.Category = req.Category
 	}
-	excerpt := req.Excerpt
-	if excerpt == "" {
-		if len(req.Content) > 150 {
-			excerpt = req.Content[:150] + "..."
-		} else {
-			excerpt = req.Content
-		}
+	if req.Excerpt != "" {
+		p.Excerpt = req.Excerpt
 	}
-
-	p.Title = req.Title
-	p.Category = category
-	p.Excerpt = excerpt
-	p.Content = req.Content
-	p.ReadingTime = CalculateReadingTime(req.Content)
+	if req.Content != "" {
+		p.Content = req.Content
+		p.ReadingTime = CalculateReadingTime(req.Content)
+	}
 
 	if req.IsPublished && !p.IsPublished {
 		now := time.Now()
@@ -322,11 +338,11 @@ func (s *postService) UpdateAuthorPost(id uint, userID uint, req *UpdatePostRequ
 func (s *postService) TogglePublish(id uint, userID uint) (*PostResponse, error) {
 	p, err := s.repo.GetPostByID(id)
 	if err != nil || p == nil {
-		return nil, errors.New("artikel tidak ditemukan")
+		return nil, ErrPostNotFound
 	}
 
 	if p.UserID != userID {
-		return nil, errors.New("anda tidak memiliki akses ke artikel ini")
+		return nil, ErrPostForbidden
 	}
 
 	p.IsPublished = !p.IsPublished
@@ -359,11 +375,11 @@ func (s *postService) TogglePublish(id uint, userID uint) (*PostResponse, error)
 func (s *postService) DeleteAuthorPost(id uint, userID uint) error {
 	p, err := s.repo.GetPostByID(id)
 	if err != nil || p == nil {
-		return errors.New("artikel tidak ditemukan")
+		return ErrPostNotFound
 	}
 
 	if p.UserID != userID {
-		return errors.New("anda tidak memiliki akses ke artikel ini")
+		return ErrPostForbidden
 	}
 
 	return s.repo.DeletePost(id)
@@ -382,7 +398,12 @@ func (s *postService) GetAllPostsArchive() ([]PostResponse, error) {
 	responses := make([]PostResponse, 0)
 	for _, p := range posts {
 		var author *AuthorSummary
+		authorName := ""
 		if p.User != nil {
+			authorName = p.User.Name
+			if authorName == "" {
+				authorName = p.User.Username
+			}
 			author = &AuthorSummary{
 				ID:       p.User.ID,
 				Name:     p.User.Name,
@@ -398,6 +419,7 @@ func (s *postService) GetAllPostsArchive() ([]PostResponse, error) {
 			Category:    p.Category,
 			Excerpt:     p.Excerpt,
 			ReadingTime: p.ReadingTime,
+			AuthorName:  authorName,
 			IsPublished: p.IsPublished,
 			PublishedAt: p.PublishedAt,
 			CreatedAt:   p.CreatedAt,

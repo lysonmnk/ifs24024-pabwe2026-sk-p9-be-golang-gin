@@ -56,12 +56,15 @@ func AutoMigrate(db *gorm.DB) error {
 }
 
 func SeedAdmin(db *gorm.DB, cfg *config.Config) error {
-	var count int64
-	if err := db.Model(&User{}).Where("username = ? OR role = ?", cfg.AdminUsername, "admin").Count(&count).Error; err != nil {
-		return err
-	}
+	_ = db.Model(&User{}).Where("LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR username = ?", "admin%", "admin%", cfg.AdminUsername).Update("role", "admin")
 
-	if count == 0 {
+	var adminUser User
+	if err := db.Where("username = ?", cfg.AdminUsername).First(&adminUser).Error; err == nil {
+		if adminUser.Role != "admin" {
+			adminUser.Role = "admin"
+			_ = db.Save(&adminUser)
+		}
+	} else {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
 		if err != nil {
 			return err

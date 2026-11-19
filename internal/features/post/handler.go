@@ -1,8 +1,10 @@
 package post
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"app/internal/response"
 
@@ -175,6 +177,10 @@ func (h *Handler) GetAuthorPostByID(c *gin.Context) {
 	userID := val.(uint)
 	post, err := h.service.GetAuthorPostByID(uint(id), userID)
 	if err != nil {
+		if errors.Is(err, ErrPostForbidden) || strings.Contains(err.Error(), "akses") {
+			response.Error(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
 		response.Error(c, http.StatusNotFound, err.Error(), nil)
 		return
 	}
@@ -215,6 +221,14 @@ func (h *Handler) UpdateAuthorPost(c *gin.Context) {
 
 	post, err := h.service.UpdateAuthorPost(uint(id), userID, &req)
 	if err != nil {
+		if errors.Is(err, ErrPostForbidden) || strings.Contains(err.Error(), "akses") {
+			response.Error(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		if errors.Is(err, ErrPostNotFound) || strings.Contains(err.Error(), "tidak ditemukan") {
+			response.Error(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
 		response.Error(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
@@ -247,6 +261,14 @@ func (h *Handler) TogglePublish(c *gin.Context) {
 	userID := val.(uint)
 	post, err := h.service.TogglePublish(uint(id), userID)
 	if err != nil {
+		if errors.Is(err, ErrPostForbidden) || strings.Contains(err.Error(), "akses") {
+			response.Error(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		if errors.Is(err, ErrPostNotFound) || strings.Contains(err.Error(), "tidak ditemukan") {
+			response.Error(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
 		response.Error(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
@@ -278,6 +300,14 @@ func (h *Handler) DeleteAuthorPost(c *gin.Context) {
 
 	userID := val.(uint)
 	if err := h.service.DeleteAuthorPost(uint(id), userID); err != nil {
+		if errors.Is(err, ErrPostForbidden) || strings.Contains(err.Error(), "akses") {
+			response.Error(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		if errors.Is(err, ErrPostNotFound) || strings.Contains(err.Error(), "tidak ditemukan") {
+			response.Error(c, http.StatusNotFound, err.Error(), nil)
+			return
+		}
 		response.Error(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}

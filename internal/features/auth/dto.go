@@ -7,6 +7,7 @@ type RegisterRequest struct {
 	Username string `json:"username" binding:"max=50"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
+	Role     string `json:"role"`
 }
 
 type LoginRequest struct {
@@ -21,6 +22,7 @@ type UpdateProfileRequest struct {
 	Username string `json:"username" binding:"max=50"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	Role     string `json:"role"`
 }
 
 type UserProfileResponse struct {

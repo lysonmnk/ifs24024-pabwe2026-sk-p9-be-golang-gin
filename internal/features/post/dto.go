@@ -11,10 +11,10 @@ type CreatePostRequest struct {
 }
 
 type UpdatePostRequest struct {
-	Title       string `json:"title" binding:"required,min=3,max=255"`
-	Category    string `json:"category" binding:"max=100"`
+	Title       string `json:"title"`
+	Category    string `json:"category"`
 	Excerpt     string `json:"excerpt"`
-	Content     string `json:"content" binding:"required"`
+	Content     string `json:"content"`
 	IsPublished bool   `json:"is_published"`
 }
 
@@ -32,6 +32,7 @@ type PostResponse struct {
 	Category    string         `json:"category"`
 	Excerpt     string         `json:"excerpt"`
 	ReadingTime int            `json:"reading_time"`
+	AuthorName  string         `json:"author_name"`
 	IsPublished bool           `json:"is_published"`
 	PublishedAt *time.Time     `json:"published_at"`
 	CreatedAt   time.Time      `json:"created_at"`
@@ -48,6 +49,7 @@ type PostDetailResponse struct {
 	Excerpt     string         `json:"excerpt"`
 	Content     string         `json:"content"`
 	ReadingTime int            `json:"reading_time"`
+	AuthorName  string         `json:"author_name"`
 	IsPublished bool           `json:"is_published"`
 	PublishedAt *time.Time     `json:"published_at"`
 	CreatedAt   time.Time      `json:"created_at"`

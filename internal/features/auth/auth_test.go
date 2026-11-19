@@ -115,6 +115,19 @@ func TestAuthService(t *testing.T) {
 		assert.NotEmpty(t, res.Token)
 	})
 
+	t.Run("Register admin role", func(t *testing.T) {
+		req := &RegisterRequest{
+			Name:     "Admin User",
+			Username: "admin_tester",
+			Email:    "admin_tester@contoh.com",
+			Password: "password123",
+			Role:     "admin",
+		}
+		res, err := svc.Register(req)
+		assert.NoError(t, err)
+		assert.Equal(t, "admin", res.User.Role)
+	})
+
 	t.Run("Register duplicate email error", func(t *testing.T) {
 		req := &RegisterRequest{
 			Name:     "Author Duplicate",

@@ -657,6 +657,53 @@ func TestPostHandler(t *testing.T) {
 		handler.DeleteAuthorPost(cDelBadID)
 		assert.Equal(t, http.StatusBadRequest, wDelBadID.Code)
 
+		// Author post 403 Forbidden checks (post 1 still exists here)
+		wGetOther := httptest.NewRecorder()
+		cGetOther, _ := gin.CreateTestContext(wGetOther)
+		cGetOther.Set("userID", uint(99999))
+		cGetOther.Params = gin.Params{{Key: "id", Value: "1"}}
+		handler.GetAuthorPostByID(cGetOther)
+		assert.Equal(t, http.StatusForbidden, wGetOther.Code)
+
+		wGetNF2 := httptest.NewRecorder()
+		cGetNF2, _ := gin.CreateTestContext(wGetNF2)
+		cGetNF2.Set("userID", user.ID)
+		cGetNF2.Params = gin.Params{{Key: "id", Value: "999999"}}
+		handler.GetAuthorPostByID(cGetNF2)
+		assert.Equal(t, http.StatusNotFound, wGetNF2.Code)
+
+		wUpOther := httptest.NewRecorder()
+		cUpOther, _ := gin.CreateTestContext(wUpOther)
+		cUpOther.Set("userID", uint(99999))
+		cUpOther.Params = gin.Params{{Key: "id", Value: "1"}}
+		cUpOther.Request, _ = http.NewRequest(http.MethodPut, "/api/posts/1", bytes.NewBuffer([]byte(`{"title":"Edit"}`)))
+		cUpOther.Request.Header.Set("Content-Type", "application/json")
+		handler.UpdateAuthorPost(cUpOther)
+		assert.Equal(t, http.StatusForbidden, wUpOther.Code)
+
+		wUpNF := httptest.NewRecorder()
+		cUpNF, _ := gin.CreateTestContext(wUpNF)
+		cUpNF.Set("userID", user.ID)
+		cUpNF.Params = gin.Params{{Key: "id", Value: "999999"}}
+		cUpNF.Request, _ = http.NewRequest(http.MethodPut, "/api/posts/999999", bytes.NewBuffer([]byte(`{"title":"Edit"}`)))
+		cUpNF.Request.Header.Set("Content-Type", "application/json")
+		handler.UpdateAuthorPost(cUpNF)
+		assert.Equal(t, http.StatusNotFound, wUpNF.Code)
+
+		wTogOther := httptest.NewRecorder()
+		cTogOther, _ := gin.CreateTestContext(wTogOther)
+		cTogOther.Set("userID", uint(99999))
+		cTogOther.Params = gin.Params{{Key: "id", Value: "1"}}
+		handler.TogglePublish(cTogOther)
+		assert.Equal(t, http.StatusForbidden, wTogOther.Code)
+
+		wDelOther := httptest.NewRecorder()
+		cDelOther, _ := gin.CreateTestContext(wDelOther)
+		cDelOther.Set("userID", uint(99999))
+		cDelOther.Params = gin.Params{{Key: "id", Value: "1"}}
+		handler.DeleteAuthorPost(cDelOther)
+		assert.Equal(t, http.StatusForbidden, wDelOther.Code)
+
 		// DeleteAuthorPost Success
 		wDelOK := httptest.NewRecorder()
 		cDelOK, _ := gin.CreateTestContext(wDelOK)
@@ -664,6 +711,13 @@ func TestPostHandler(t *testing.T) {
 		cDelOK.Params = gin.Params{{Key: "id", Value: "1"}}
 		handler.DeleteAuthorPost(cDelOK)
 		assert.Equal(t, http.StatusOK, wDelOK.Code)
+
+		wDelNF := httptest.NewRecorder()
+		cDelNF, _ := gin.CreateTestContext(wDelNF)
+		cDelNF.Set("userID", user.ID)
+		cDelNF.Params = gin.Params{{Key: "id", Value: "999999"}}
+		handler.DeleteAuthorPost(cDelNF)
+		assert.Equal(t, http.StatusNotFound, wDelNF.Code)
 
 		_ = postID
 	})
@@ -779,7 +833,13 @@ func (m *mockPostServiceErr) GetCategories() ([]string, error) {
 func (m *mockPostServiceErr) GetPublicPosts(q, c string) ([]PostResponse, error) {
 	return nil, errors.New("err")
 }
+func (m *mockPostServiceErr) GetPublicPostBySlug(s string) (*PostDetailResponse, error) {
+	return nil, errors.New("err")
+}
 func (m *mockPostServiceErr) GetAuthorPosts(u uint) ([]PostResponse, error) {
+	return nil, errors.New("err")
+}
+func (m *mockPostServiceErr) GetAuthorPostByID(id, u uint) (*PostDetailResponse, error) {
 	return nil, errors.New("err")
 }
 func (m *mockPostServiceErr) GetAuthorPostStats(u uint) (*PostStatsResponse, error) {
