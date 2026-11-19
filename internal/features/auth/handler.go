@@ -57,7 +57,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	if req.Email == "" && req.Username == "" {
+	if req.Email == "" && req.Username == "" && req.Identifier == "" {
 		response.Error(c, http.StatusBadRequest, "Email dan password wajib diisi", nil)
 		return
 	}

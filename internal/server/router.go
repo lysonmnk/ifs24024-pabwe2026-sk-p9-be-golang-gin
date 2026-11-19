@@ -33,7 +33,7 @@ func SetupRouter(
 	r.Use(gin.Logger())
 	r.Use(middleware.CORSMiddleware())
 
-	limiter := middleware.NewRateLimiter(60, time.Minute)
+	limiter := middleware.NewRateLimiter(1200, time.Minute)
 	r.Use(limiter.Middleware())
 
 	r.NoRoute(func(c *gin.Context) {

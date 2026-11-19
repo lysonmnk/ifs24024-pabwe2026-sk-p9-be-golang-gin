@@ -94,7 +94,6 @@ func (s *postService) GetPublicPosts(keyword, category string) ([]PostResponse, 
 
 		responses = append(responses, PostResponse{
 			ID:          p.ID,
-			UserID:      p.UserID,
 			Title:       p.Title,
 			Slug:        p.Slug,
 			Category:    p.Category,
@@ -128,7 +127,6 @@ func (s *postService) GetPublicPostBySlug(slug string) (*PostDetailResponse, err
 
 	return &PostDetailResponse{
 		ID:          p.ID,
-		UserID:      p.UserID,
 		Title:       p.Title,
 		Slug:        p.Slug,
 		Category:    p.Category,

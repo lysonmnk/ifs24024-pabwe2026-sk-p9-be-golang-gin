@@ -62,7 +62,7 @@ func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		Username: username,
 		Email:    req.Email,
 		Password: string(hashedPassword),
-		Role:     "author",
+		Role:     "member",
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
@@ -87,18 +87,40 @@ func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 
 func (s *authService) Login(req *LoginRequest) (*AuthResponse, error) {
 	var user *database.User
-	var err error
 
+	var candidates []string
 	if req.Email != "" {
-		user, err = s.repo.FindByEmail(req.Email)
+		candidates = append(candidates, req.Email)
 	}
-	if user == nil && req.Username != "" {
-		user, err = s.repo.FindByUsername(req.Username)
+	if req.Username != "" && req.Username != req.Email {
+		candidates = append(candidates, req.Username)
 	}
-	if user == nil && req.Email != "" && !strings.Contains(req.Email, "@") {
-		user, err = s.repo.FindByUsername(req.Email)
+	if req.Identifier != "" && req.Identifier != req.Email && req.Identifier != req.Username {
+		candidates = append(candidates, req.Identifier)
 	}
-	if err != nil || user == nil {
+
+	for _, cand := range candidates {
+		cand = strings.TrimSpace(cand)
+		if cand == "" {
+			continue
+		}
+		if strings.Contains(cand, "@") {
+			user, _ = s.repo.FindByEmail(cand)
+			if user == nil {
+				user, _ = s.repo.FindByUsername(cand)
+			}
+		} else {
+			user, _ = s.repo.FindByUsername(cand)
+			if user == nil {
+				user, _ = s.repo.FindByEmail(cand)
+			}
+		}
+		if user != nil {
+			break
+		}
+	}
+
+	if user == nil {
 		return nil, errors.New("email atau password salah")
 	}
 

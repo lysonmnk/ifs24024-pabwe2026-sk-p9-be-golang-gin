@@ -26,7 +26,7 @@ type AuthorSummary struct {
 
 type PostResponse struct {
 	ID          uint           `json:"id"`
-	UserID      uint           `json:"user_id"`
+	UserID      uint           `json:"user_id,omitempty"`
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
 	Category    string         `json:"category"`
@@ -41,7 +41,7 @@ type PostResponse struct {
 
 type PostDetailResponse struct {
 	ID          uint           `json:"id"`
-	UserID      uint           `json:"user_id"`
+	UserID      uint           `json:"user_id,omitempty"`
 	Title       string         `json:"title"`
 	Slug        string         `json:"slug"`
 	Category    string         `json:"category"`

@@ -98,6 +98,7 @@ func TestAuthService(t *testing.T) {
 		res, err := svc.Register(req)
 		assert.NoError(t, err)
 		assert.Equal(t, "author1", res.User.Username)
+		assert.Equal(t, "member", res.User.Role)
 		assert.NotEmpty(t, res.Token)
 	})
 
@@ -181,6 +182,15 @@ func TestAuthService(t *testing.T) {
 		resEmailAsUser, err := svc.Login(loginEmailAsUserReq)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, resEmailAsUser.Token)
+
+		// Login with email in username field
+		loginEmailInUserReq := &LoginRequest{
+			Username: "author1@contoh.com",
+			Password: "password123",
+		}
+		resEmailInUser, err := svc.Login(loginEmailInUserReq)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, resEmailInUser.Token)
 
 		// Login with non-existent username
 		loginNonExistentUserReq := &LoginRequest{
