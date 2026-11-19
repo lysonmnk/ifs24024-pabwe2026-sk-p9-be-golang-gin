@@ -95,10 +95,14 @@ func (r *postRepository) GetAuthorPostStats(userID uint) (*PostStatsResponse, er
 	}
 	_ = r.db.Model(&database.Post{}).Where("user_id = ? AND is_published = ?", userID, true).Count(&published)
 
+	drafts := total - published
 	return &PostStatsResponse{
 		TotalPosts:     total,
 		PublishedPosts: published,
-		DraftPosts:     total - published,
+		DraftPosts:     drafts,
+		TotalArticles:  total,
+		TotalSelesai:   published,
+		BelumSelesai:   drafts,
 	}, nil
 }
 
@@ -153,7 +157,7 @@ func (r *postRepository) GetAllUsersWithPostCount() ([]AdminUserResponse, error)
 		return nil, err
 	}
 
-	var users []AdminUserResponse
+	users := make([]AdminUserResponse, 0)
 	for _, res := range results {
 		users = append(users, AdminUserResponse{
 			ID:         res.ID,

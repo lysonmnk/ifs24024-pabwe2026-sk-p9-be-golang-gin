@@ -97,7 +97,8 @@ func TestAuthService(t *testing.T) {
 		}
 		res, err := svc.Register(req)
 		assert.NoError(t, err)
-		assert.Equal(t, "author1", res.Username)
+		assert.Equal(t, "author1", res.User.Username)
+		assert.NotEmpty(t, res.Token)
 	})
 
 	t.Run("Register default username from email", func(t *testing.T) {
@@ -109,7 +110,8 @@ func TestAuthService(t *testing.T) {
 		}
 		res, err := svc.Register(req)
 		assert.NoError(t, err)
-		assert.Equal(t, "author2", res.Username)
+		assert.Equal(t, "author2", res.User.Username)
+		assert.NotEmpty(t, res.Token)
 	})
 
 	t.Run("Register duplicate email error", func(t *testing.T) {
@@ -227,6 +229,38 @@ func TestAuthService(t *testing.T) {
 		_, err = svc.UpdateProfile(user.ID, upConflictReq)
 		assert.Error(t, err)
 		assert.Equal(t, "username sudah digunakan", err.Error())
+
+		// Update email & password success
+		upEmailPassReq := &UpdateProfileRequest{
+			Email:    "newauthor1@contoh.com",
+			Password: "newpassword123",
+		}
+		updatedEmailPass, err := svc.UpdateProfile(user.ID, upEmailPassReq)
+		assert.NoError(t, err)
+		assert.Equal(t, "newauthor1@contoh.com", updatedEmailPass.Email)
+
+		// Login with new password
+		loginNewPass, err := svc.Login(&LoginRequest{
+			Email:    "newauthor1@contoh.com",
+			Password: "newpassword123",
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, loginNewPass.Token)
+
+		// Invalid email format error
+		_, err = svc.UpdateProfile(user.ID, &UpdateProfileRequest{Email: "invalid-email"})
+		assert.Error(t, err)
+		assert.Equal(t, "format email tidak valid", err.Error())
+
+		// Duplicate email error
+		_, err = svc.UpdateProfile(user.ID, &UpdateProfileRequest{Email: "author2@contoh.com"})
+		assert.Error(t, err)
+		assert.Equal(t, "email sudah terdaftar", err.Error())
+
+		// Password too short error (<8)
+		_, err = svc.UpdateProfile(user.ID, &UpdateProfileRequest{Password: "short"})
+		assert.Error(t, err)
+		assert.Equal(t, "password minimal 8 karakter", err.Error())
 
 		// Update non-existent user
 		_, err = svc.UpdateProfile(99999, upReq)

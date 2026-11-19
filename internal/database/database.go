@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"time"
 
 	"app/internal/config"
 
@@ -60,21 +61,43 @@ func SeedAdmin(db *gorm.DB, cfg *config.Config) error {
 		return err
 	}
 
-	if count > 0 {
-		return nil
+	if count == 0 {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+
+		admin := User{
+			Name:     "Administrator",
+			Username: cfg.AdminUsername,
+			Email:    cfg.AdminUsername + "@delcom.org",
+			Password: string(hashedPassword),
+			Role:     "admin",
+		}
+		if err := db.Create(&admin).Error; err != nil {
+			return err
+		}
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(cfg.AdminPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+	var postCount int64
+	if err := db.Model(&Post{}).Count(&postCount).Error; err == nil && postCount == 0 {
+		var adminUser User
+		if err := db.Where("username = ? OR role = ?", cfg.AdminUsername, "admin").First(&adminUser).Error; err == nil {
+			now := time.Now()
+			initialPost := Post{
+				UserID:      adminUser.ID,
+				Title:       "Pengenalan Pemrograman Golang untuk Backend Modern",
+				Slug:        "pengenalan-pemrograman-golang-untuk-backend-modern",
+				Category:    "Teknologi",
+				Excerpt:     "Panduan dasar pengembangan aplikasi web berperforma tinggi menggunakan Golang.",
+				Content:     "Golang adalah bahasa pemrograman yang dirancang untuk efisiensi, konkurensi, dan performa tinggi pada sistem backend modern.",
+				ReadingTime: 2,
+				IsPublished: true,
+				PublishedAt: &now,
+			}
+			_ = db.Create(&initialPost)
+		}
 	}
 
-	admin := User{
-		Name:     "Administrator",
-		Username: cfg.AdminUsername,
-		Email:    cfg.AdminUsername + "@delcom.org",
-		Password: string(hashedPassword),
-		Role:     "admin",
-	}
-	return db.Create(&admin).Error
+	return nil
 }

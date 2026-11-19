@@ -23,7 +23,10 @@ func NewService(searchClient SearchClient, openaiClient OpenAIClient) Service {
 }
 
 func (s *aiService) GeneratePost(req *GenerateRequest) (*GenerateResponse, error) {
-	var sources []SourceItem
+	if req.Category == "" {
+		req.Category = "Umum"
+	}
+	sources := make([]SourceItem, 0)
 
 	if req.IncludeWebSearch && s.searchClient != nil {
 		foundSources, err := s.searchClient.Search(req.Topic)

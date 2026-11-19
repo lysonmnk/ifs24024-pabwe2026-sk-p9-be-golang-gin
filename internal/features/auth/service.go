@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"net/mail"
 	"strings"
 
 	"app/internal/database"
@@ -11,7 +12,7 @@ import (
 )
 
 type Service interface {
-	Register(req *RegisterRequest) (*UserProfileResponse, error)
+	Register(req *RegisterRequest) (*AuthResponse, error)
 	Login(req *LoginRequest) (*AuthResponse, error)
 	GetProfile(userID uint) (*UserProfileResponse, error)
 	UpdateProfile(userID uint, req *UpdateProfileRequest) (*UserProfileResponse, error)
@@ -29,7 +30,7 @@ func NewService(repo Repository, secretKey string) Service {
 	}
 }
 
-func (s *authService) Register(req *RegisterRequest) (*UserProfileResponse, error) {
+func (s *authService) Register(req *RegisterRequest) (*AuthResponse, error) {
 	existingUser, _ := s.repo.FindByEmail(req.Email)
 	if existingUser != nil {
 		return nil, errors.New("email sudah terdaftar")
@@ -46,13 +47,18 @@ func (s *authService) Register(req *RegisterRequest) (*UserProfileResponse, erro
 		return nil, errors.New("username sudah digunakan")
 	}
 
+	name := req.Name
+	if name == "" {
+		name = username
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
 	user := &database.User{
-		Name:     req.Name,
+		Name:     name,
 		Username: username,
 		Email:    req.Email,
 		Password: string(hashedPassword),
@@ -63,13 +69,19 @@ func (s *authService) Register(req *RegisterRequest) (*UserProfileResponse, erro
 		return nil, err
 	}
 
-	return &UserProfileResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Username:  user.Username,
-		Email:     user.Email,
-		Role:      user.Role,
-		CreatedAt: user.CreatedAt,
+	token, _ := middleware.GenerateToken(user.ID, user.Role, s.secretKey)
+
+	return &AuthResponse{
+		Token:     token,
+		TokenType: "Bearer",
+		User: UserProfileResponse{
+			ID:        user.ID,
+			Name:      user.Name,
+			Username:  user.Username,
+			Email:     user.Email,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
+		},
 	}, nil
 }
 
@@ -132,15 +144,42 @@ func (s *authService) UpdateProfile(userID uint, req *UpdateProfileRequest) (*Us
 		return nil, errors.New("pengguna tidak ditemukan")
 	}
 
-	if user.Username != req.Username {
+	if req.Username != "" && user.Username != req.Username {
 		existingUser, _ := s.repo.FindByUsername(req.Username)
 		if existingUser != nil && existingUser.ID != userID {
 			return nil, errors.New("username sudah digunakan")
 		}
+		user.Username = req.Username
 	}
 
-	user.Name = req.Name
-	user.Username = req.Username
+	if req.Name != "" {
+		user.Name = req.Name
+	}
+
+	if req.Email != "" {
+		addr, err := mail.ParseAddress(req.Email)
+		if err != nil || !strings.Contains(addr.Address, ".") {
+			return nil, errors.New("format email tidak valid")
+		}
+		if user.Email != req.Email {
+			existingUser, _ := s.repo.FindByEmail(req.Email)
+			if existingUser != nil && existingUser.ID != userID {
+				return nil, errors.New("email sudah terdaftar")
+			}
+			user.Email = req.Email
+		}
+	}
+
+	if req.Password != "" {
+		if len(req.Password) < 8 {
+			return nil, errors.New("password minimal 8 karakter")
+		}
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		user.Password = string(hashedPassword)
+	}
 
 	if err := s.repo.UpdateUser(user); err != nil {
 		return nil, err

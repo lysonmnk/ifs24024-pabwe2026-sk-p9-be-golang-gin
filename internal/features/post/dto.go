@@ -4,7 +4,7 @@ import "time"
 
 type CreatePostRequest struct {
 	Title       string `json:"title" binding:"required,min=3,max=255"`
-	Category    string `json:"category" binding:"required,min=2,max=100"`
+	Category    string `json:"category" binding:"max=100"`
 	Excerpt     string `json:"excerpt"`
 	Content     string `json:"content" binding:"required"`
 	IsPublished bool   `json:"is_published"`
@@ -12,7 +12,7 @@ type CreatePostRequest struct {
 
 type UpdatePostRequest struct {
 	Title       string `json:"title" binding:"required,min=3,max=255"`
-	Category    string `json:"category" binding:"required,min=2,max=100"`
+	Category    string `json:"category" binding:"max=100"`
 	Excerpt     string `json:"excerpt"`
 	Content     string `json:"content" binding:"required"`
 	IsPublished bool   `json:"is_published"`
@@ -59,6 +59,9 @@ type PostStatsResponse struct {
 	TotalPosts     int64 `json:"total_posts"`
 	PublishedPosts int64 `json:"published_posts"`
 	DraftPosts     int64 `json:"draft_posts"`
+	TotalArticles  int64 `json:"total_articles"`
+	TotalSelesai   int64 `json:"total_selesai"`
+	BelumSelesai   int64 `json:"belum_selesai"`
 }
 
 type AdminUserResponse struct {

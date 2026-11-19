@@ -3,7 +3,7 @@ package auth
 import "time"
 
 type RegisterRequest struct {
-	Name     string `json:"name" binding:"required,min=2,max=100"`
+	Name     string `json:"name" binding:"max=100"`
 	Username string `json:"username" binding:"max=50"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=8"`
@@ -16,8 +16,10 @@ type LoginRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	Name     string `json:"name" binding:"required,min=2,max=100"`
-	Username string `json:"username" binding:"required,min=3,max=50"`
+	Name     string `json:"name" binding:"max=100"`
+	Username string `json:"username" binding:"max=50"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserProfileResponse struct {

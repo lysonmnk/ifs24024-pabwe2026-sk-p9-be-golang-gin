@@ -27,7 +27,7 @@ func TestResponse(t *testing.T) {
 		assert.Equal(t, "Berhasil", resp.Message)
 	})
 
-	t.Run("Error response", func(t *testing.T) {
+	t.Run("Fail response for 4xx", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
@@ -37,7 +37,21 @@ func TestResponse(t *testing.T) {
 		var resp Response
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.NoError(t, err)
-		assert.Equal(t, "error", resp.Status)
+		assert.Equal(t, "fail", resp.Status)
 		assert.Equal(t, "Gagal", resp.Message)
+	})
+
+	t.Run("Error response for 5xx", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		Error(c, http.StatusInternalServerError, "Server Error", nil)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		var resp Response
+		err := json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.Equal(t, "error", resp.Status)
+		assert.Equal(t, "Server Error", resp.Message)
 	})
 }

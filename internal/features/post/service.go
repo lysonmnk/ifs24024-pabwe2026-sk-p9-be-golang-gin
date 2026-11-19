@@ -53,7 +53,26 @@ func (s *postService) ensureUniqueSlug(title string, excludeID uint) (string, er
 }
 
 func (s *postService) GetCategories() ([]string, error) {
-	return s.repo.GetCategories()
+	cats, err := s.repo.GetCategories()
+	if err != nil {
+		cats = []string{}
+	}
+	defaultCats := []string{"Bisnis", "Gaya Hidup", "Opini", "Pendidikan", "Teknologi", "Umum"}
+	seen := make(map[string]bool)
+	var result []string
+	for _, c := range cats {
+		if c != "" && !seen[c] {
+			seen[c] = true
+			result = append(result, c)
+		}
+	}
+	for _, c := range defaultCats {
+		if !seen[c] {
+			seen[c] = true
+			result = append(result, c)
+		}
+	}
+	return result, nil
 }
 
 func (s *postService) GetPublicPosts(keyword, category string) ([]PostResponse, error) {
@@ -62,7 +81,7 @@ func (s *postService) GetPublicPosts(keyword, category string) ([]PostResponse, 
 		return nil, err
 	}
 
-	var responses []PostResponse
+	responses := make([]PostResponse, 0)
 	for _, p := range posts {
 		var author *AuthorSummary
 		if p.User != nil {
@@ -130,7 +149,7 @@ func (s *postService) GetAuthorPosts(userID uint) ([]PostResponse, error) {
 		return nil, err
 	}
 
-	var responses []PostResponse
+	responses := make([]PostResponse, 0)
 	for _, p := range posts {
 		responses = append(responses, PostResponse{
 			ID:          p.ID,
@@ -155,6 +174,17 @@ func (s *postService) GetAuthorPostStats(userID uint) (*PostStatsResponse, error
 }
 
 func (s *postService) CreatePost(userID uint, req *CreatePostRequest) (*PostDetailResponse, error) {
+	if req.Category == "" {
+		req.Category = "Umum"
+	}
+	if req.Excerpt == "" {
+		if len(req.Content) > 150 {
+			req.Excerpt = req.Content[:150] + "..."
+		} else {
+			req.Excerpt = req.Content
+		}
+	}
+
 	slug, err := s.ensureUniqueSlug(req.Title, 0)
 	if err != nil {
 		return nil, err
@@ -244,9 +274,22 @@ func (s *postService) UpdateAuthorPost(id uint, userID uint, req *UpdatePostRequ
 		p.Slug = slug
 	}
 
+	category := req.Category
+	if category == "" {
+		category = "Umum"
+	}
+	excerpt := req.Excerpt
+	if excerpt == "" {
+		if len(req.Content) > 150 {
+			excerpt = req.Content[:150] + "..."
+		} else {
+			excerpt = req.Content
+		}
+	}
+
 	p.Title = req.Title
-	p.Category = req.Category
-	p.Excerpt = req.Excerpt
+	p.Category = category
+	p.Excerpt = excerpt
 	p.Content = req.Content
 	p.ReadingTime = CalculateReadingTime(req.Content)
 
@@ -338,7 +381,7 @@ func (s *postService) GetAllPostsArchive() ([]PostResponse, error) {
 		return nil, err
 	}
 
-	var responses []PostResponse
+	responses := make([]PostResponse, 0)
 	for _, p := range posts {
 		var author *AuthorSummary
 		if p.User != nil {
@@ -373,7 +416,7 @@ func (s *postService) GetUserPosts(userID uint) ([]PostResponse, error) {
 		return nil, err
 	}
 
-	var responses []PostResponse
+	responses := make([]PostResponse, 0)
 	for _, p := range posts {
 		responses = append(responses, PostResponse{
 			ID:          p.ID,

@@ -19,8 +19,12 @@ func Success(c *gin.Context, statusCode int, message string, data interface{}) {
 }
 
 func Error(c *gin.Context, statusCode int, message string, data interface{}) {
+	status := "error"
+	if statusCode >= 400 && statusCode < 500 {
+		status = "fail"
+	}
 	c.JSON(statusCode, Response{
-		Status:  "error",
+		Status:  status,
 		Message: message,
 		Data:    data,
 	})
